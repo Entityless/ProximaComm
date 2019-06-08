@@ -21,10 +21,11 @@ void Proxima<Locker>::CreateAllreduceTask(MPI_Comm comm, size_t arr_length, int 
     while (max_2_pow < task_info_.comm_sz)
         max_2_pow *= 2;
 
-    if (max_2_pow == task_info_.comm_sz && max_2_pow != 1)
+    if (max_2_pow == task_info_.comm_sz && max_2_pow != 1) {
         task_info_.use_tree = true;
-    else
+    } else {
         task_info_.use_tree = false;
+    }
 
     task_info_.comm_tag = comm_tag;
     task_info_.arr_length = arr_length;
@@ -33,14 +34,15 @@ void Proxima<Locker>::CreateAllreduceTask(MPI_Comm comm, size_t arr_length, int 
 }
 
 template<class Locker>
-void Proxima<Locker>::ForkThreadsForAllreduce(int nthreads) {
+void Proxima<Locker>::ForkThreadsForAllreduce(int nthreads, int slice) {
     finalize_ = false;
-    locker_ = new Locker(nthreads + 1);
+    locker_ = new Locker(nthreads + 1, slice);
     for (int i = 0; i < nthreads; i++) {
         threads_.emplace_back(new std::thread(&Proxima<Locker>::ComputeThreadSpin, this, i));
     }
 
     nthreads_ = nthreads;
+    slice_ = slice;
 }
 
 template<class Locker>
@@ -81,11 +83,16 @@ void Proxima<Locker>::AllreduceSumSendrecv() {
     while (bitmask < task_info_.comm_sz) {
         int partner = task_info_.my_rank ^ bitmask;
 
-        MPI_Sendrecv(task_info_.to_merge, task_info_.arr_length, MPI_DOUBLE, partner, task_info_.comm_tag,
-                     task_info_.tmp_buffer, task_info_.arr_length, MPI_DOUBLE, partner, task_info_.comm_tag, 
-                     task_info_.comm, MPI_STATUS_IGNORE);
+        for (int i = 0; i < slice_; i++) {
+            int slice_start = BLOCK_LOW(i, slice_, task_info_.arr_length);
+            int slice_len = BLOCK_SIZE(i, slice_, task_info_.arr_length);
+            MPI_Sendrecv(task_info_.to_merge + slice_start, slice_len, MPI_DOUBLE, partner, task_info_.comm_tag,
+                         task_info_.tmp_buffer + slice_start, slice_len, MPI_DOUBLE, partner, task_info_.comm_tag, 
+                         task_info_.comm, MPI_STATUS_IGNORE);
+            // locker_->Barrier(0);
+            locker_->AsyncLeadBarrier(0);
+        }
 
-        locker_->Barrier(0);
 
         bitmask <<= 1;
     }
@@ -100,13 +107,19 @@ void Proxima<Locker>::AllreduceSumCompute(int compute_tid) {
     while (bitmask < task_info_.comm_sz) {
         int partner = task_info_.my_rank ^ bitmask;
 
-        locker_->Barrier(compute_tid + 1);
+        for (int i = 0; i < slice_; i++) {
+            // locker_->Barrier(compute_tid + 1);
+            locker_->AsyncLeadBarrier(compute_tid + 1);
 
-        int my_start = BLOCK_LOW(compute_tid, nthreads_, task_info_.arr_length);
-        int my_length = BLOCK_SIZE(compute_tid, nthreads_, task_info_.arr_length);
+            int slice_start = BLOCK_LOW(i, slice_, task_info_.arr_length);
+            int slice_len = BLOCK_SIZE(i, slice_, task_info_.arr_length);
 
-        for (int i = 0; i < my_length; i++)
-            task_info_.to_merge[my_start + i] += task_info_.tmp_buffer[my_start + i];
+            int my_start = BLOCK_LOW(compute_tid, nthreads_, slice_len) + slice_start;
+            int my_length = BLOCK_SIZE(compute_tid, nthreads_, slice_len);
+
+            for (int i = 0; i < my_length; i++)
+                task_info_.to_merge[my_start + i] += task_info_.tmp_buffer[my_start + i];
+        }
 
         bitmask <<= 1;
     }

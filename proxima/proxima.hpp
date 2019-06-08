@@ -28,7 +28,7 @@ class Proxima {
     };
 
     // template<class DTYPE>
-    void ForkThreadsForAllreduce(int nthreads);
+    void ForkThreadsForAllreduce(int nthreads, int slice);
     void FinalizeThreads();
 
     // template<class DTYPE>
@@ -48,6 +48,7 @@ class Proxima {
 
     std::vector<std::thread*> threads_;
     int nthreads_;
+    int slice_;
 };
 
 #include "proxima.tpp"

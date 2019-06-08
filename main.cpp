@@ -13,15 +13,16 @@ using namespace std;
 
 // loop_cnt arr_sz comp_nthreads
 int main(int argc, char** argv) {
-    if (argc != 4) {
-        printf("params: <loop count> <arr size> <sum nthreads>\n");
+    if (argc != 5) {
+        printf("params: <loop count> <arr size> <sum nthreads> <slice>\n");
         exit(0);
     }
 
-    int loop_cnt, arr_sz, comp_nthreads;
+    int loop_cnt, arr_sz, comp_nthreads, slice;
     loop_cnt = atoi(argv[1]);
     arr_sz = atoi(argv[2]);
     comp_nthreads = atoi(argv[3]);
+    slice = atoi(argv[4]);
 
     MPI_Init(nullptr, nullptr);
 
@@ -71,7 +72,7 @@ int main(int argc, char** argv) {
     }
 
     Proxima<ProximaWeirdLocker> p;
-    p.ForkThreadsForAllreduce(comp_nthreads);
+    p.ForkThreadsForAllreduce(comp_nthreads, slice);
 
     stt = MPI_Wtime();
     for (int i = 0; i < loop_cnt; i++) {

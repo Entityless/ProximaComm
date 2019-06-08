@@ -17,12 +17,19 @@ Author: Created by Entityless (entityless@gmail.com)
 
 class ProximaWeirdLocker {
  public:
-    ProximaWeirdLocker(int nthreads);
+    ProximaWeirdLocker(int nthreads, int lead_slice);
 
     void Barrier(int tid);
+    void AsyncLeadBarrier(int tid);
 
  private:
+    enum FlagIdentifer {
+        NORMAL_BARRIER = 0,
+        ASYNC_LEAD_BARRIER = 1,
+        MAX_LIMIT = 8
+    };
+
     std::atomic<uint64_t>* assign_signals_;
     std::atomic<uint64_t>* finish_signals_;
-    int nthreads_;
+    int nthreads_, lead_slice_;
 };
