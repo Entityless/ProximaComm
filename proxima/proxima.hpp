@@ -9,12 +9,10 @@ Author: Created by Entityless (entityless@gmail.com)
 #include <thread>
 #include <vector>
 #include <atomic>
-#include "proxima_weird_locker.hpp"
 
 template<class Locker>
 class Proxima {
  public:
-    // TODO(Entityless): Enable dynamic allreduce scheduling
     struct AllreduceTaskInfo {
         MPI_Comm comm;
         int comm_sz, my_rank;

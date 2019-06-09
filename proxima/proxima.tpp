@@ -93,7 +93,6 @@ void Proxima<Locker>::AllreduceSumSendrecv() {
             locker_->AsyncLeadBarrier(0);
         }
 
-
         bitmask <<= 1;
     }
 

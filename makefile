@@ -1,11 +1,11 @@
 TARGET = test_proxima
 CC = mpicc
-CPP = mpic++
-LD  = mpic++
+CPP = mpiicpc
+LD  = mpiicpc
 
-CCFLAGS =  -O2 -fopenmp
-CPPFLAGS =  -O2 -std=c++17 -fopenmp
-LDFLAGS  =  -O2 -std=c++17 -fopenmp
+CCFLAGS =  -O2 -qopenmp
+CPPFLAGS =  -O2 -std=c++17 -qopenmp
+LDFLAGS  =  -O2 -std=c++17 -qopenmp
 
 CPPOBJ = main.o proxima_weird_locker.o
 
