@@ -26,7 +26,7 @@ class ProximaComm {
         size_t element_size;
 
         void* to_merge;
-        void* tmp_buffer;
+        void* tmp_buffer;  // TODO(entityless): reduce the buffer needed.
 
         void (ProximaComm<Locker>::*compute_func_ptr)(int);
     };
