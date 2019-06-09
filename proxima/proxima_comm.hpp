@@ -29,27 +29,13 @@ class ProximaComm {
         void* tmp_buffer;
 
         void (ProximaComm<Locker>::*compute_func_ptr)(int);
-        ComputeFP fp;
     };
 
     void ForkThreadsForAllreduce(int nthreads, int slice);
     void FinalizeThreads();
 
     template<class DTYPE>
-    void CreateAllreduceTask(MPI_Comm comm, size_t arr_element_count, int comm_tag, void* to_merge, void* tmp_buffer);
-
-    template<class DTYPE>
     void AllreduceSum(void* to_merge, void* tmp_buffer, size_t arr_element_count, MPI_Comm comm, int tag = 0);
-
-    void ComputeThreadSpin(int compute_tid);
-
-    void AllreduceSumComputeOuter(int compute_tid);
-
-    template<class DTYPE>
-    void AllreduceSumCompute(int compute_tid);
-
-    template<class DTYPE>
-    void AllreduceSumSendrecv();
 
  private:
     Locker* locker_;
@@ -60,6 +46,19 @@ class ProximaComm {
     std::vector<std::thread*> threads_;
     int nthreads_;
     int slice_;
+
+    template<class DTYPE>
+    void CreateAllreduceTask(MPI_Comm comm, size_t arr_element_count, int comm_tag, void* to_merge, void* tmp_buffer);
+
+    void ComputeThreadSpin(int compute_tid);
+
+    void AllreduceSumComputeOuter(int compute_tid);
+
+    template<class DTYPE>
+    void AllreduceSumCompute(int compute_tid);
+
+    template<class DTYPE>
+    void AllreduceSumSendrecv();
 };
 
 #include "proxima_comm.tpp"

@@ -35,11 +35,7 @@ void ProximaComm<Locker>::CreateAllreduceTask(MPI_Comm comm, size_t arr_element_
     task_info_.to_merge = to_merge;
     task_info_.tmp_buffer = tmp_buffer;
 
-    // task_info_.compute_func_ptr = &ProximaComm<Locker>::AllreduceSumCompute;  // ok
     task_info_.compute_func_ptr = &ProximaComm<Locker>::AllreduceSumCompute<DTYPE>;
-
-    // task_info_.fp = (ComputeFP)&ProximaComm<Locker>::AllreduceSumCompute;  // ok
-    // task_info_.fp = (ComputeFP)&ProximaComm<Locker>::AllreduceSumCompute<DTYPE>;  // bad
 }
 
 template<class Locker>
@@ -107,8 +103,6 @@ template<class Locker>
 void ProximaComm<Locker>::AllreduceSumComputeOuter(int compute_tid) {
     void (ProximaComm<Locker>::*compute_func_ptr)(int) = task_info_.compute_func_ptr;
     (this->*compute_func_ptr)(compute_tid);
-
-    // task_info_.fp(this, compute_tid);  // ok
 }
 
 template<class Locker> template<class DTYPE>
