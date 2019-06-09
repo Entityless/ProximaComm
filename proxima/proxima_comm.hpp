@@ -5,34 +5,35 @@ Author: Created by Entityless (entityless@gmail.com)
 
 #pragma once
 
+#include <assert.h>
 #include <mpi.h>
 #include <thread>
 #include <vector>
 #include <atomic>
 
 template<class Locker>
-class Proxima {
+class ProximaComm {
  public:
     struct AllreduceTaskInfo {
         MPI_Comm comm;
         int comm_sz, my_rank;
-        bool use_tree;
+        bool use_tree;  // must be true
 
         int comm_tag;
-        size_t arr_length;
+        size_t arr_element_count;
+        size_t element_size;
 
-        double* to_merge;
-        double* tmp_buffer;
+        void* to_merge;
+        void* tmp_buffer;
     };
 
-    // template<class DTYPE>
     void ForkThreadsForAllreduce(int nthreads, int slice);
     void FinalizeThreads();
 
     // template<class DTYPE>
-    void CreateAllreduceTask(MPI_Comm comm, size_t arr_length, int comm_tag, double* to_merge, double* tmp_buffer);
+    void CreateAllreduceTask(MPI_Comm comm, size_t arr_element_count, int comm_tag, void* to_merge, void* tmp_buffer);
 
-    void AllreduceSum(double* to_merge, double* tmp_buffer, size_t arr_length, MPI_Comm comm, int tag = 0);
+    void AllreduceSum(void* to_merge, void* tmp_buffer, size_t arr_element_count, MPI_Comm comm, int tag = 0);
 
     void ComputeThreadSpin(int compute_tid);
     void AllreduceSumCompute(int compute_tid);
@@ -49,4 +50,4 @@ class Proxima {
     int slice_;
 };
 
-#include "proxima.tpp"
+#include "proxima_comm.tpp"

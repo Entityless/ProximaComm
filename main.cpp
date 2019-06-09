@@ -7,7 +7,7 @@ Author: Created by Entityless (entityless@gmail.com)
 #include <iostream>
 #include <omp.h>
 #include "proxima/proxima_weird_locker.hpp"
-#include "proxima/proxima.hpp"
+#include "proxima/proxima_comm.hpp"
 #include <numeric>
 
 using namespace std;
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
                 send_arr[i] = -1.0;
         }
 
-        Proxima<ProximaWeirdLocker> p;
+        ProximaComm<ProximaWeirdLocker> p;
         p.ForkThreadsForAllreduce(comp_nthreads, slice);
 
         stt = MPI_Wtime();
