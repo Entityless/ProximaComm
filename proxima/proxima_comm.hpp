@@ -14,6 +14,8 @@ Author: Created by Entityless (entityless@gmail.com)
 template<class Locker>
 class ProximaComm {
  public:
+    typedef void (*ComputeFP)(ProximaComm<Locker>*, int a);
+
     struct AllreduceTaskInfo {
         MPI_Comm comm;
         int comm_sz, my_rank;
@@ -25,18 +27,28 @@ class ProximaComm {
 
         void* to_merge;
         void* tmp_buffer;
+
+        void (ProximaComm<Locker>::*compute_func_ptr)(int);
+        ComputeFP fp;
     };
 
     void ForkThreadsForAllreduce(int nthreads, int slice);
     void FinalizeThreads();
 
-    // template<class DTYPE>
+    template<class DTYPE>
     void CreateAllreduceTask(MPI_Comm comm, size_t arr_element_count, int comm_tag, void* to_merge, void* tmp_buffer);
 
+    template<class DTYPE>
     void AllreduceSum(void* to_merge, void* tmp_buffer, size_t arr_element_count, MPI_Comm comm, int tag = 0);
 
     void ComputeThreadSpin(int compute_tid);
+
+    void AllreduceSumComputeOuter(int compute_tid);
+
+    template<class DTYPE>
     void AllreduceSumCompute(int compute_tid);
+
+    template<class DTYPE>
     void AllreduceSumSendrecv();
 
  private:

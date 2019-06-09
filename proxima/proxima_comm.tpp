@@ -11,7 +11,7 @@ Author: Created by Entityless (entityless@gmail.com)
 #define BLOCK_LOW(block_id, total_blocks, n) ((n / total_blocks) * block_id + ((n % total_blocks > block_id) ? block_id : n % total_blocks))
 #endif
 
-template<class Locker>
+template<class Locker> template<class DTYPE>
 void ProximaComm<Locker>::CreateAllreduceTask(MPI_Comm comm, size_t arr_element_count, int comm_tag, void* to_merge, void* tmp_buffer) {
     task_info_.comm = comm;
     MPI_Comm_size(MPI_COMM_WORLD, &task_info_.comm_sz);
@@ -31,8 +31,15 @@ void ProximaComm<Locker>::CreateAllreduceTask(MPI_Comm comm, size_t arr_element_
 
     task_info_.comm_tag = comm_tag;
     task_info_.arr_element_count = arr_element_count;
+    task_info_.element_size = sizeof(DTYPE);
     task_info_.to_merge = to_merge;
     task_info_.tmp_buffer = tmp_buffer;
+
+    // task_info_.compute_func_ptr = &ProximaComm<Locker>::AllreduceSumCompute;  // ok
+    task_info_.compute_func_ptr = &ProximaComm<Locker>::AllreduceSumCompute<DTYPE>;
+
+    // task_info_.fp = (ComputeFP)&ProximaComm<Locker>::AllreduceSumCompute;  // ok
+    // task_info_.fp = (ComputeFP)&ProximaComm<Locker>::AllreduceSumCompute<DTYPE>;  // bad
 }
 
 template<class Locker>
@@ -62,19 +69,19 @@ void ProximaComm<Locker>::ComputeThreadSpin(int compute_tid) {
         bool finalize = finalize_;
         if (finalize)
             break;
-        AllreduceSumCompute(compute_tid);
+        AllreduceSumComputeOuter(compute_tid);
     }
 }
 
-template<class Locker>
+template<class Locker> template<class DTYPE>
 void ProximaComm<Locker>::AllreduceSum(void* to_merge, void* tmp_buffer, size_t arr_element_count, MPI_Comm comm, int tag) {
-    CreateAllreduceTask(comm, arr_element_count, tag, to_merge, tmp_buffer);
+    CreateAllreduceTask<DTYPE>(comm, arr_element_count, tag, to_merge, tmp_buffer);
 
     locker_->Barrier(0);
-    AllreduceSumSendrecv();
+    AllreduceSumSendrecv<DTYPE>();
 }
 
-template<class Locker>
+template<class Locker> template<class DTYPE>
 void ProximaComm<Locker>::AllreduceSumSendrecv() {
     int bitmask = 1;
     while (bitmask < task_info_.comm_sz) {
@@ -83,8 +90,8 @@ void ProximaComm<Locker>::AllreduceSumSendrecv() {
         for (int i = 0; i < slice_; i++) {
             int slice_start = BLOCK_LOW(i, slice_, task_info_.arr_element_count);
             int slice_len = BLOCK_SIZE(i, slice_, task_info_.arr_element_count);
-            MPI_Sendrecv(task_info_.to_merge + slice_start * sizeof(double), slice_len * sizeof(double), MPI_BYTE, partner, task_info_.comm_tag,
-                         task_info_.tmp_buffer + slice_start * sizeof(double), slice_len * sizeof(double), MPI_BYTE, partner, task_info_.comm_tag, 
+            MPI_Sendrecv(task_info_.to_merge + slice_start * sizeof(DTYPE), slice_len * sizeof(DTYPE), MPI_BYTE, partner, task_info_.comm_tag,
+                         task_info_.tmp_buffer + slice_start * sizeof(DTYPE), slice_len * sizeof(DTYPE), MPI_BYTE, partner, task_info_.comm_tag, 
                          task_info_.comm, MPI_STATUS_IGNORE);
             locker_->AsyncLeadBarrier(0);
         }
@@ -95,12 +102,21 @@ void ProximaComm<Locker>::AllreduceSumSendrecv() {
     locker_->Barrier(0);
 }
 
+
 template<class Locker>
+void ProximaComm<Locker>::AllreduceSumComputeOuter(int compute_tid) {
+    void (ProximaComm<Locker>::*compute_func_ptr)(int) = task_info_.compute_func_ptr;
+    (this->*compute_func_ptr)(compute_tid);
+
+    // task_info_.fp(this, compute_tid);  // ok
+}
+
+template<class Locker> template<class DTYPE>
 void ProximaComm<Locker>::AllreduceSumCompute(int compute_tid) {
     int bitmask = 1;
 
-    double* to_merge = (double*) task_info_.to_merge;
-    double* tmp_buffer = (double*) task_info_.tmp_buffer;
+    DTYPE* to_merge = (DTYPE*) task_info_.to_merge;
+    DTYPE* tmp_buffer = (DTYPE*) task_info_.tmp_buffer;
 
     while (bitmask < task_info_.comm_sz) {
         int partner = task_info_.my_rank ^ bitmask;
