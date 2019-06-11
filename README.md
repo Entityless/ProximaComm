@@ -14,6 +14,8 @@ p.AllreduceSum<double>(send_arr1, buff_arr, arr_sz, MPI_COMM_WORLD);
 p.AllreduceSum<double>(send_arr2, buff_arr, arr_sz, MPI_COMM_WORLD);
 p.AllreduceSum<double>(send_arr3, buff_arr, arr_sz, MPI_COMM_WORLD);
 p.FinalizeThreads();
+
+// the count of nodes in the communicator should be 2 ^ n (n is a positive integer)
 ```
 See main.cpp for details.
 
