@@ -1,4 +1,22 @@
 
+# Usage
+
+``` c++
+// before
+MPI_Allreduce(MPI_IN_PLACE, send_arr1, arr_sz, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+MPI_Allreduce(MPI_IN_PLACE, send_arr2, arr_sz, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+MPI_Allreduce(MPI_IN_PLACE, send_arr3, arr_sz, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+// after
+ProximaComm<ProximaWeirdLocker> p;
+p.ForkThreadsForAllreduce(1, arr_sz / 100000);
+p.AllreduceSum<double>(send_arr1, buff_arr, arr_sz, MPI_COMM_WORLD);
+p.AllreduceSum<double>(send_arr2, buff_arr, arr_sz, MPI_COMM_WORLD);
+p.AllreduceSum<double>(send_arr3, buff_arr, arr_sz, MPI_COMM_WORLD);
+p.FinalizeThreads();
+```
+See main.cpp for details.
+
 # Benchmark
 
 ## Environment
